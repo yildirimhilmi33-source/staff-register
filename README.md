@@ -1,10 +1,10 @@
-# Ücretsiz Yayınlama: Netlify veya Vercel + Supabase
+# Free Hosting: Netlify/GitHub/Vercel + Supabase
 
-Bu sürüm Google Apps Script kullanmadan yayınlanır.
+This version uses an English interface and does not require Google Apps Script.
 
-- Netlify veya Vercel: Web sayfasını ücretsiz yayınlar.
-- Supabase: Öğretmen listesini ve giriş/çıkış kayıtlarını saklar.
-- Uygulama sayfası kayıt tablosunu göstermez. Kayıtları sadece Supabase paneline giren kişi görür.
+- Netlify, GitHub Pages, or Vercel: hosts the web page for free.
+- Supabase: stores the staff list and attendance records.
+- The public app does not show the records table. Records are visible in Supabase or in the PIN-protected admin report.
 
 ## 1. Supabase Kurulumu
 
@@ -14,12 +14,27 @@ Bu sürüm Google Apps Script kullanmadan yayınlanır.
 4. `New query` açın.
 5. Bu klasördeki `supabase.sql` dosyasının içeriğini yapıştırıp çalıştırın.
 
-Bu işlem iki tablo oluşturur:
+This creates these tables:
 
-- `teachers`: Öğretmen isimleri
-- `attendance_records`: Giriş/çıkış kayıtları
+- `teachers`: Staff names
+- `attendance_records`: Check In / Check Out records
+- `report_settings`: Admin report PIN setting
 
 `attendance_records` tablosunda sadece kayıt ekleme izni vardır. Web sayfası kayıtları okuyamaz.
+
+Default report PIN:
+
+```text
+1234
+```
+
+To change the PIN, run this in Supabase `SQL Editor`:
+
+```sql
+update public.report_settings
+set value = 'NEW_PIN_HERE'
+where key = 'report_pin';
+```
 
 ## 2. Supabase Bilgilerini Alma
 
@@ -82,6 +97,23 @@ Supabase panelinde:
 1. `Table Editor` bölümüne girin.
 2. `attendance_records` tablosunu açın.
 3. Kayıtları buradan görebilir, filtreleyebilir veya CSV olarak dışa aktarabilirsiniz.
+
+## Signed Report Download
+
+CSV does not show the signature as a real image. To see and download signatures as images, add `/admin.html` to the end of the published site URL.
+
+Örnek:
+
+```text
+https://kullanici-adiniz.github.io/staff-register/admin.html
+```
+
+After entering the PIN, records appear with real signature images. From there:
+
+- `Download HTML` downloads a signed HTML report.
+- `Print / PDF` lets you save it as PDF.
+
+Browser time is not shown in this report.
 
 ## Önemli Güvenlik Notu
 
