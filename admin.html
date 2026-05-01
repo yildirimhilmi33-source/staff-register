@@ -3,61 +3,102 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Signed Attendance Report</title>
+    <title>Evim Preschool Beyerspark Admin</title>
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./admin.css" />
   </head>
   <body>
     <main class="admin-shell">
       <section class="admin-panel">
-        <header class="admin-header">
-          <div>
-            <p class="eyebrow">Admin</p>
-            <h1>Signed Attendance Report</h1>
+        <header class="admin-header brand-topbar">
+          <div class="brand-lockup">
+            <img class="brand-logo" src="./evim-logo.png" alt="Evim Preschool logo" />
+            <div>
+              <p class="eyebrow">Evim Preschool Beyerspark</p>
+              <h1>Admin Dashboard</h1>
+            </div>
           </div>
           <time class="clock" id="clock" aria-live="polite">--:--:--</time>
         </header>
 
         <form class="report-login no-print" id="reportForm">
           <label class="field">
-            <span>Report PIN</span>
+            <span>Admin PIN</span>
             <input id="reportPin" type="password" inputmode="numeric" autocomplete="current-password" required />
           </label>
-          <button class="primary-button" type="submit">Open Report</button>
+          <button class="primary-button" type="submit">Open Admin</button>
         </form>
-
-        <div class="report-actions no-print" id="reportActions" hidden>
-          <button class="primary-button" id="downloadHtml" type="button">Download HTML</button>
-          <button class="secondary-button" id="printReport" type="button">Print / PDF</button>
-        </div>
 
         <p class="status" id="status" role="status" aria-live="polite"></p>
 
-        <section class="report-area" id="reportArea" hidden>
-          <div class="report-title">
-            <h2>Attendance Records</h2>
-            <p id="reportMeta"></p>
+        <section class="admin-dashboard" id="adminDashboard" hidden>
+          <div class="admin-grid no-print">
+            <section class="admin-section">
+              <div class="section-head">
+                <h2>School Wi-Fi Access</h2>
+                <p>Attendance can be limited to the school public IP address.</p>
+              </div>
+              <div class="network-box">
+                <span>Your current public IP</span>
+                <strong id="currentIp">-</strong>
+                <button class="ghost-button" id="useCurrentIp" type="button">Use This IP</button>
+              </div>
+              <label class="field">
+                <span>Allowed public IPs</span>
+                <textarea id="allowedIps" rows="3" placeholder="One IP per line, for example 102.65.10.20"></textarea>
+              </label>
+              <button class="primary-button compact-button" id="saveAllowedIps" type="button">Save Wi-Fi Rule</button>
+            </section>
+
+            <section class="admin-section">
+              <div class="section-head">
+                <h2>Staff Management</h2>
+                <p>Add staff and copy their personal QR links.</p>
+              </div>
+              <form class="staff-form" id="staffForm">
+                <label class="field">
+                  <span>Staff name</span>
+                  <input id="newStaffName" type="text" maxlength="80" autocomplete="off" />
+                </label>
+                <button class="primary-button compact-button" type="submit">Add Staff</button>
+              </form>
+              <div class="staff-list" id="staffList"></div>
+            </section>
           </div>
 
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Staff Member</th>
-                  <th>Action</th>
-                  <th>Signature</th>
-                </tr>
-              </thead>
-              <tbody id="reportRows"></tbody>
-            </table>
-          </div>
+          <section class="admin-section report-section">
+            <div class="section-head report-title">
+              <div>
+                <h2>Signed Attendance Report</h2>
+                <p id="reportMeta"></p>
+              </div>
+              <div class="report-actions no-print">
+                <button class="primary-button compact-button" id="downloadHtml" type="button">Download HTML</button>
+                <button class="secondary-button compact-button" id="printReport" type="button">Print / PDF</button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Staff Member</th>
+                    <th>Action</th>
+                    <th>Signature</th>
+                  </tr>
+                </thead>
+                <tbody id="reportRows"></tbody>
+              </table>
+            </div>
+          </section>
         </section>
       </section>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script src="./config.js"></script>
     <script src="./admin.js"></script>
   </body>

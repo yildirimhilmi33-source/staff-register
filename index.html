@@ -3,32 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Staff Register</title>
+    <title>Evim Preschool Beyerspark Staff Register</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="app-shell">
       <section class="panel" aria-labelledby="app-title">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Staff Attendance</p>
-            <h1 id="app-title">Staff Register</h1>
+        <header class="topbar brand-topbar">
+          <div class="brand-lockup">
+            <img class="brand-logo" src="./evim-logo.png" alt="Evim Preschool logo" />
+            <div>
+              <p class="eyebrow">Evim Preschool Beyerspark</p>
+              <h1 id="app-title">Staff Register</h1>
+            </div>
           </div>
           <time class="clock" id="clock" aria-live="polite">--:--:--</time>
         </header>
 
         <form class="attendance-form" id="attendanceForm">
-          <label class="field">
-            <span>Select name</span>
-            <select id="teacherName" name="teacherName" required>
-              <option value="">Select a staff member</option>
-            </select>
-          </label>
+          <div class="access-notice" id="accessNotice">Checking staff link...</div>
 
-          <label class="field other-name-field" id="otherNameField" hidden>
-            <span>Type name</span>
-            <input id="otherName" name="otherName" type="text" maxlength="80" autocomplete="name" />
-          </label>
+          <div class="staff-card" id="staffCard" hidden>
+            <span>Staff member</span>
+            <strong id="staffName">-</strong>
+          </div>
 
           <div class="signature-block">
             <div class="signature-head">
@@ -39,8 +37,8 @@
           </div>
 
           <div class="actions" aria-label="Check in and check out actions">
-            <button class="primary-button" type="submit" data-action="Check In">Check In</button>
-            <button class="secondary-button" type="submit" data-action="Check Out">Check Out</button>
+            <button class="primary-button" type="submit" data-action="Check In" disabled>Check In</button>
+            <button class="secondary-button" type="submit" data-action="Check Out" disabled>Check Out</button>
           </div>
         </form>
 

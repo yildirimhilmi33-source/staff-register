@@ -1,8 +1,8 @@
 const clock = document.querySelector("#clock");
 const form = document.querySelector("#attendanceForm");
-const teacherSelect = document.querySelector("#teacherName");
-const otherNameField = document.querySelector("#otherNameField");
-const otherNameInput = document.querySelector("#otherName");
+const accessNotice = document.querySelector("#accessNotice");
+const staffCard = document.querySelector("#staffCard");
+const staffName = document.querySelector("#staffName");
 const canvas = document.querySelector("#signatureCanvas");
 const clearSignatureButton = document.querySelector("#clearSignature");
 const statusBox = document.querySelector("#status");
@@ -14,16 +14,20 @@ const supabaseClient =
     ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey)
     : null;
 
+const urlParams = new URLSearchParams(window.location.search);
+const staffToken = urlParams.get("staff") || urlParams.get("t") || "";
+
 let selectedAction = "";
 let isDrawing = false;
 let hasSignature = false;
 let lastPoint = null;
+let activeStaff = null;
 
 const context = canvas.getContext("2d");
 
 function updateClock() {
   const now = new Date();
-  clock.textContent = now.toLocaleTimeString("tr-TR", {
+  clock.textContent = now.toLocaleTimeString("en-ZA", {
     timeZone: "Africa/Johannesburg",
     hour: "2-digit",
     minute: "2-digit",
@@ -67,6 +71,8 @@ function drawLine(from, to) {
 }
 
 function startDrawing(event) {
+  if (!activeStaff) return;
+
   isDrawing = true;
   hasSignature = true;
   lastPoint = getPoint(event);
@@ -102,56 +108,56 @@ function showStatus(message, isError = false) {
   statusBox.classList.toggle("error", isError);
 }
 
+function setReady(isReady) {
+  submitButtons.forEach((button) => {
+    button.disabled = !isReady;
+  });
+}
+
 function setBusy(isBusy) {
   submitButtons.forEach((button) => {
-    button.disabled = isBusy;
+    button.disabled = isBusy || !activeStaff;
   });
 }
 
-function getSelectedName() {
-  if (teacherSelect.value === "__other") {
-    return otherNameInput.value.trim();
-  }
-
-  return teacherSelect.value.trim();
-}
-
-async function loadTeachers() {
+async function loadStaffLink() {
   if (!supabaseClient) {
-    showStatus("Fill in the Supabase details in config.js.", true);
+    accessNotice.textContent = "Supabase connection is missing.";
+    accessNotice.classList.add("error");
     return;
   }
 
-  const { data, error } = await supabaseClient
-    .from("teachers")
-    .select("name")
-    .eq("active", true)
-    .order("name", { ascending: true });
-
-  if (error) {
-    showStatus("Could not load the staff list.", true);
+  if (!staffToken) {
+    accessNotice.textContent = "This page needs a personal staff link. Please scan your QR code.";
+    accessNotice.classList.add("error");
     return;
   }
 
-  data.forEach((teacher) => {
-    const option = document.createElement("option");
-    option.value = teacher.name;
-    option.textContent = teacher.name;
-    teacherSelect.append(option);
+  const { data, error } = await supabaseClient.rpc("get_teacher_by_token", {
+    staff_token: staffToken
   });
 
-  const otherOption = document.createElement("option");
-  otherOption.value = "__other";
-  otherOption.textContent = "Not on the list";
-  teacherSelect.append(otherOption);
-}
+  const staff = Array.isArray(data) ? data[0] : data;
 
-teacherSelect.addEventListener("change", () => {
-  const showOtherName = teacherSelect.value === "__other";
-  otherNameField.hidden = !showOtherName;
-  otherNameInput.required = showOtherName;
-  if (showOtherName) otherNameInput.focus();
-});
+  if (error || !staff) {
+    accessNotice.textContent = "This staff link is not valid. Please contact the office.";
+    accessNotice.classList.add("error");
+    return;
+  }
+
+  if (!staff.network_allowed) {
+    accessNotice.textContent = "This register only works on the school Wi-Fi.";
+    accessNotice.classList.add("error");
+    return;
+  }
+
+  activeStaff = staff;
+  staffName.textContent = staff.name;
+  staffCard.hidden = false;
+  accessNotice.textContent = "School network verified.";
+  accessNotice.classList.remove("error");
+  setReady(true);
+}
 
 submitButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -162,14 +168,8 @@ submitButtons.forEach((button) => {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  if (!supabaseClient) {
-    showStatus("Supabase connection is missing.", true);
-    return;
-  }
-
-  const name = getSelectedName();
-  if (!name) {
-    showStatus("Please select a name.", true);
+  if (!activeStaff) {
+    showStatus("Please open your personal staff link.", true);
     return;
   }
 
@@ -181,23 +181,24 @@ form.addEventListener("submit", async (event) => {
   setBusy(true);
   showStatus("Saving record...");
 
-  const { error } = await supabaseClient.from("attendance_records").insert({
-    teacher_name: name,
-    action: selectedAction || "Check In",
+  const action = selectedAction || "Check In";
+  const { error } = await supabaseClient.rpc("save_attendance_record", {
+    staff_token: staffToken,
+    input_action: action,
     signature_data_url: canvas.toDataURL("image/png"),
-    user_agent: navigator.userAgent.slice(0, 300)
+    browser_user_agent: navigator.userAgent.slice(0, 300)
   });
 
   if (error) {
-    showStatus("Could not save the record. Check the Supabase settings.", true);
+    const message = error.message && error.message.includes("school network")
+      ? "This register only works on the school Wi-Fi."
+      : "Could not save the record. Please contact the office.";
+    showStatus(message, true);
     setBusy(false);
     return;
   }
 
-  showStatus(`${selectedAction || "Check In"} saved for ${name}.`);
-  form.reset();
-  otherNameField.hidden = true;
-  otherNameInput.required = false;
+  showStatus(`${action} saved for ${activeStaff.name}.`);
   clearSignature();
   setBusy(false);
 });
@@ -213,4 +214,4 @@ window.addEventListener("resize", setCanvasSize);
 updateClock();
 setInterval(updateClock, 1000);
 requestAnimationFrame(setCanvasSize);
-loadTeachers();
+loadStaffLink();

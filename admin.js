@@ -1,11 +1,17 @@
 const clock = document.querySelector("#clock");
 const reportForm = document.querySelector("#reportForm");
 const reportPin = document.querySelector("#reportPin");
-const reportActions = document.querySelector("#reportActions");
+const statusBox = document.querySelector("#status");
+const adminDashboard = document.querySelector("#adminDashboard");
+const currentIp = document.querySelector("#currentIp");
+const useCurrentIpButton = document.querySelector("#useCurrentIp");
+const allowedIps = document.querySelector("#allowedIps");
+const saveAllowedIpsButton = document.querySelector("#saveAllowedIps");
+const staffForm = document.querySelector("#staffForm");
+const newStaffName = document.querySelector("#newStaffName");
+const staffList = document.querySelector("#staffList");
 const downloadHtmlButton = document.querySelector("#downloadHtml");
 const printReportButton = document.querySelector("#printReport");
-const statusBox = document.querySelector("#status");
-const reportArea = document.querySelector("#reportArea");
 const reportRows = document.querySelector("#reportRows");
 const reportMeta = document.querySelector("#reportMeta");
 
@@ -16,10 +22,11 @@ const supabaseClient =
     : null;
 
 let reportData = [];
+let teachers = [];
 
 function updateClock() {
   const now = new Date();
-  clock.textContent = now.toLocaleTimeString("tr-TR", {
+  clock.textContent = now.toLocaleTimeString("en-ZA", {
     timeZone: "Africa/Johannesburg",
     hour: "2-digit",
     minute: "2-digit",
@@ -44,6 +51,35 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
+function getPin() {
+  return reportPin.value.trim();
+}
+
+function getBaseUrl() {
+  const path = window.location.pathname.replace(/admin\.html$/, "");
+  return `${window.location.origin}${path}`;
+}
+
+function buildStaffLink(teacher) {
+  return `${getBaseUrl()}?staff=${encodeURIComponent(teacher.access_token)}`;
+}
+
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const input = document.createElement("textarea");
+  input.value = text;
+  input.style.position = "fixed";
+  input.style.opacity = "0";
+  document.body.append(input);
+  input.select();
+  document.execCommand("copy");
+  input.remove();
+}
+
 function renderRows(rows) {
   reportRows.innerHTML = "";
 
@@ -60,8 +96,65 @@ function renderRows(rows) {
   });
 
   reportMeta.textContent = `${rows.length} records`;
-  reportArea.hidden = false;
-  reportActions.hidden = false;
+}
+
+async function renderTeachers() {
+  staffList.innerHTML = "";
+
+  for (const teacher of teachers) {
+    const link = buildStaffLink(teacher);
+    const card = document.createElement("article");
+    card.className = "staff-row";
+
+    const qrSource = await makeQrSource(link);
+    card.innerHTML = `
+      <div class="staff-main">
+        <strong>${escapeHtml(teacher.name)}</strong>
+        <span>${teacher.active ? "Active" : "Inactive"}</span>
+        <input class="link-input" value="${escapeHtml(link)}" readonly />
+        <div class="staff-actions">
+          <button class="ghost-button" data-action="copy" type="button">Copy Link</button>
+          <button class="ghost-button" data-action="toggle" type="button">${teacher.active ? "Deactivate" : "Activate"}</button>
+          <button class="ghost-button" data-action="rotate" type="button">New QR</button>
+        </div>
+      </div>
+      <img class="qr-image" src="${escapeHtml(qrSource)}" alt="QR code for ${escapeHtml(teacher.name)}" />
+    `;
+
+    card.querySelector('[data-action="copy"]').addEventListener("click", async () => {
+      await copyText(link);
+      showStatus(`Link copied for ${teacher.name}.`);
+    });
+
+    card.querySelector('[data-action="toggle"]').addEventListener("click", () => {
+      setTeacherActive(teacher.id, !teacher.active);
+    });
+
+    card.querySelector('[data-action="rotate"]').addEventListener("click", () => {
+      rotateTeacherLink(teacher.id);
+    });
+
+    staffList.append(card);
+  }
+}
+
+async function makeQrSource(text) {
+  if (window.QRCode && window.QRCode.toDataURL) {
+    try {
+      return await window.QRCode.toDataURL(text, {
+        width: 148,
+        margin: 1,
+        color: {
+          dark: "#1f2733",
+          light: "#ffffff"
+        }
+      });
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
 }
 
 function buildHtmlReport(rows) {
@@ -97,7 +190,7 @@ function buildHtmlReport(rows) {
   </style>
 </head>
 <body>
-  <h1>Signed Attendance Report</h1>
+  <h1>Evim Preschool Beyerspark Signed Attendance Report</h1>
   <p>Downloaded on ${escapeHtml(createdAt)}. Total records: ${rows.length}.</p>
   <table>
     <thead>
@@ -121,9 +214,64 @@ function downloadHtmlReport() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "signed-attendance-report.html";
+  link.download = "evim-preschool-signed-attendance-report.html";
   link.click();
   URL.revokeObjectURL(url);
+}
+
+async function loadAdminDashboard() {
+  const [{ data: dashboard, error: dashboardError }, { data: report, error: reportError }] =
+    await Promise.all([
+      supabaseClient.rpc("get_admin_dashboard", { input_pin: getPin() }),
+      supabaseClient.rpc("get_attendance_report", { input_pin: getPin() })
+    ]);
+
+  if (dashboardError || reportError) {
+    throw new Error("Could not open admin. Check the PIN or Supabase setup.");
+  }
+
+  teachers = dashboard.teachers || [];
+  reportData = report || [];
+  currentIp.textContent = dashboard.client_ip || "Not detected";
+  allowedIps.value = (dashboard.allowed_ips || []).join("\n");
+  renderRows(reportData);
+  await renderTeachers();
+  adminDashboard.hidden = false;
+}
+
+async function refreshAdmin(message = "Admin updated.") {
+  showStatus("Refreshing...");
+  await loadAdminDashboard();
+  showStatus(message);
+}
+
+async function setTeacherActive(id, active) {
+  const { error } = await supabaseClient.rpc("admin_set_teacher_active", {
+    input_pin: getPin(),
+    teacher_id: id,
+    is_active: active
+  });
+
+  if (error) {
+    showStatus("Could not update staff status.", true);
+    return;
+  }
+
+  await refreshAdmin("Staff status updated.");
+}
+
+async function rotateTeacherLink(id) {
+  const { error } = await supabaseClient.rpc("admin_rotate_teacher_token", {
+    input_pin: getPin(),
+    teacher_id: id
+  });
+
+  if (error) {
+    showStatus("Could not create a new QR link.", true);
+    return;
+  }
+
+  await refreshAdmin("New QR link created.");
 }
 
 reportForm.addEventListener("submit", async (event) => {
@@ -134,22 +282,72 @@ reportForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  showStatus("Preparing report...");
+  try {
+    showStatus("Opening admin...");
+    await loadAdminDashboard();
+    showStatus("Admin ready.");
+  } catch (error) {
+    adminDashboard.hidden = true;
+    showStatus(error.message, true);
+  }
+});
 
-  const { data, error } = await supabaseClient.rpc("get_attendance_report", {
-    input_pin: reportPin.value.trim()
-  });
+staffForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
 
-  if (error) {
-    reportArea.hidden = true;
-    reportActions.hidden = true;
-    showStatus("Could not open the report. Check the PIN or Supabase settings.", true);
+  const name = newStaffName.value.trim();
+  if (!name) {
+    showStatus("Enter a staff name.", true);
     return;
   }
 
-  reportData = data || [];
-  renderRows(reportData);
-  showStatus("Report ready.");
+  const { error } = await supabaseClient.rpc("admin_upsert_teacher", {
+    input_pin: getPin(),
+    teacher_id: null,
+    staff_name: name,
+    is_active: true
+  });
+
+  if (error) {
+    showStatus("Could not add staff. The name may already exist.", true);
+    return;
+  }
+
+  newStaffName.value = "";
+  await refreshAdmin("Staff added.");
+});
+
+useCurrentIpButton.addEventListener("click", () => {
+  const ip = currentIp.textContent.trim();
+  if (!ip || ip === "Not detected") return;
+
+  const ips = new Set(
+    allowedIps.value
+      .split(/\n|,/)
+      .map((value) => value.trim())
+      .filter(Boolean)
+  );
+  ips.add(ip);
+  allowedIps.value = [...ips].join("\n");
+});
+
+saveAllowedIpsButton.addEventListener("click", async () => {
+  const ips = allowedIps.value
+    .split(/\n|,/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const { error } = await supabaseClient.rpc("admin_save_allowed_ips", {
+    input_pin: getPin(),
+    input_ips: ips
+  });
+
+  if (error) {
+    showStatus("Could not save the Wi-Fi rule.", true);
+    return;
+  }
+
+  await refreshAdmin("Wi-Fi rule saved.");
 });
 
 downloadHtmlButton.addEventListener("click", downloadHtmlReport);
