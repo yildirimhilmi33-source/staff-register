@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Öğretmen Giriş Çıkış</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="panel" aria-labelledby="app-title">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Personel Takip</p>
+            <h1 id="app-title">Öğretmen Giriş Çıkış</h1>
+          </div>
+          <time class="clock" id="clock" aria-live="polite">--:--:--</time>
+        </header>
+
+        <form class="attendance-form" id="attendanceForm">
+          <label class="field">
+            <span>İsim seç</span>
+            <select id="teacherName" name="teacherName" required>
+              <option value="">Öğretmen seçiniz</option>
+            </select>
+          </label>
+
+          <label class="field other-name-field" id="otherNameField" hidden>
+            <span>İsim yaz</span>
+            <input id="otherName" name="otherName" type="text" maxlength="80" autocomplete="name" />
+          </label>
+
+          <div class="signature-block">
+            <div class="signature-head">
+              <span>İmza</span>
+              <button class="ghost-button" id="clearSignature" type="button">Temizle</button>
+            </div>
+            <canvas id="signatureCanvas" aria-label="İmza alanı"></canvas>
+          </div>
+
+          <div class="actions" aria-label="Giriş çıkış işlemleri">
+            <button class="primary-button" type="submit" data-action="Giriş">Giriş</button>
+            <button class="secondary-button" type="submit" data-action="Çıkış">Çıkış</button>
+          </div>
+        </form>
+
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
