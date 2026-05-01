@@ -24,6 +24,7 @@ const context = canvas.getContext("2d");
 function updateClock() {
   const now = new Date();
   clock.textContent = now.toLocaleTimeString("tr-TR", {
+    timeZone: "Africa/Johannesburg",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit"
@@ -117,7 +118,7 @@ function getSelectedName() {
 
 async function loadTeachers() {
   if (!supabaseClient) {
-    showStatus("Supabase bağlantısı için config.js dosyasını doldurun.", true);
+    showStatus("Fill in the Supabase details in config.js.", true);
     return;
   }
 
@@ -128,7 +129,7 @@ async function loadTeachers() {
     .order("name", { ascending: true });
 
   if (error) {
-    showStatus("İsim listesi yüklenemedi.", true);
+    showStatus("Could not load the staff list.", true);
     return;
   }
 
@@ -141,7 +142,7 @@ async function loadTeachers() {
 
   const otherOption = document.createElement("option");
   otherOption.value = "__other";
-  otherOption.textContent = "Listede yok";
+  otherOption.textContent = "Not on the list";
   teacherSelect.append(otherOption);
 }
 
@@ -162,39 +163,38 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   if (!supabaseClient) {
-    showStatus("Supabase bağlantısı eksik.", true);
+    showStatus("Supabase connection is missing.", true);
     return;
   }
 
   const name = getSelectedName();
   if (!name) {
-    showStatus("Lütfen isim seçin.", true);
+    showStatus("Please select a name.", true);
     return;
   }
 
   if (!hasSignature) {
-    showStatus("Lütfen imza atın.", true);
+    showStatus("Please add a signature.", true);
     return;
   }
 
   setBusy(true);
-  showStatus("Kayıt alınıyor...");
+  showStatus("Saving record...");
 
   const { error } = await supabaseClient.from("attendance_records").insert({
     teacher_name: name,
-    action: selectedAction || "Giriş",
+    action: selectedAction || "Check In",
     signature_data_url: canvas.toDataURL("image/png"),
-    client_time: new Date().toISOString(),
     user_agent: navigator.userAgent.slice(0, 300)
   });
 
   if (error) {
-    showStatus("Kayıt alınamadı. Supabase ayarlarını kontrol edin.", true);
+    showStatus("Could not save the record. Check the Supabase settings.", true);
     setBusy(false);
     return;
   }
 
-  showStatus(`${name} için ${(selectedAction || "Giriş").toLowerCase()} kaydı alındı.`);
+  showStatus(`${selectedAction || "Check In"} saved for ${name}.`);
   form.reset();
   otherNameField.hidden = true;
   otherNameInput.required = false;
