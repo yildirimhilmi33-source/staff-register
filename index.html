@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Öğretmen Giriş Çıkış</title>
+    <title>Staff Register</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -11,36 +11,36 @@
       <section class="panel" aria-labelledby="app-title">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Personel Takip</p>
-            <h1 id="app-title">Öğretmen Giriş Çıkış</h1>
+            <p class="eyebrow">Staff Attendance</p>
+            <h1 id="app-title">Staff Register</h1>
           </div>
           <time class="clock" id="clock" aria-live="polite">--:--:--</time>
         </header>
 
         <form class="attendance-form" id="attendanceForm">
           <label class="field">
-            <span>İsim seç</span>
+            <span>Select name</span>
             <select id="teacherName" name="teacherName" required>
-              <option value="">Öğretmen seçiniz</option>
+              <option value="">Select a staff member</option>
             </select>
           </label>
 
           <label class="field other-name-field" id="otherNameField" hidden>
-            <span>İsim yaz</span>
+            <span>Type name</span>
             <input id="otherName" name="otherName" type="text" maxlength="80" autocomplete="name" />
           </label>
 
           <div class="signature-block">
             <div class="signature-head">
-              <span>İmza</span>
-              <button class="ghost-button" id="clearSignature" type="button">Temizle</button>
+              <span>Signature</span>
+              <button class="ghost-button" id="clearSignature" type="button">Clear</button>
             </div>
-            <canvas id="signatureCanvas" aria-label="İmza alanı"></canvas>
+            <canvas id="signatureCanvas" aria-label="Signature area"></canvas>
           </div>
 
-          <div class="actions" aria-label="Giriş çıkış işlemleri">
-            <button class="primary-button" type="submit" data-action="Giriş">Giriş</button>
-            <button class="secondary-button" type="submit" data-action="Çıkış">Çıkış</button>
+          <div class="actions" aria-label="Check in and check out actions">
+            <button class="primary-button" type="submit" data-action="Check In">Check In</button>
+            <button class="secondary-button" type="submit" data-action="Check Out">Check Out</button>
           </div>
         </form>
 
