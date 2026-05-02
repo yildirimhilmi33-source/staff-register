@@ -154,6 +154,32 @@ async function makeQrSource(text) {
     }
   }
 
+  if (window.QRCode) {
+    const holder = document.createElement("div");
+    holder.style.position = "fixed";
+    holder.style.left = "-9999px";
+    document.body.append(holder);
+
+    try {
+      new window.QRCode(holder, {
+        text,
+        width: 148,
+        height: 148,
+        correctLevel: window.QRCode.CorrectLevel.M
+      });
+
+      const canvas = holder.querySelector("canvas");
+      if (canvas) return canvas.toDataURL("image/png");
+
+      const image = holder.querySelector("img");
+      if (image && image.src) return image.src;
+    } catch {
+      return "";
+    } finally {
+      holder.remove();
+    }
+  }
+
   return "";
 }
 
