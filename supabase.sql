@@ -275,6 +275,7 @@ $$;
 
 create or replace function public.get_attendance_report(input_pin text)
 returns table (
+  "ID" uuid,
   "Date" text,
   "Time" text,
   "Staff Member" text,
@@ -290,6 +291,7 @@ begin
 
   return query
   select
+    id as "ID",
     to_char(created_at at time zone 'Africa/Johannesburg', 'DD.MM.YYYY') as "Date",
     to_char(created_at at time zone 'Africa/Johannesburg', 'HH24:MI:SS') as "Time",
     teacher_name as "Staff Member",
@@ -297,6 +299,25 @@ begin
     signature_data_url as "Signature"
   from public.attendance_records
   order by created_at desc;
+end;
+$$;
+
+create or replace function public.admin_delete_attendance_record(
+  input_pin text,
+  record_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  perform public.verify_admin_pin_(input_pin);
+
+  delete from public.attendance_records
+  where id = record_id;
+
+  return jsonb_build_object('ok', true, 'id', record_id);
 end;
 $$;
 
@@ -470,6 +491,7 @@ $$;
 revoke all on function public.get_teacher_by_token(text) from public;
 revoke all on function public.save_attendance_record(text, text, text, text) from public;
 revoke all on function public.get_attendance_report(text) from public;
+revoke all on function public.admin_delete_attendance_record(text, uuid) from public;
 revoke all on function public.get_admin_dashboard(text) from public;
 revoke all on function public.admin_upsert_teacher(text, uuid, text, boolean) from public;
 revoke all on function public.admin_set_teacher_active(text, uuid, boolean) from public;
@@ -484,6 +506,7 @@ revoke all on function public.verify_admin_pin_(text) from public;
 grant execute on function public.get_teacher_by_token(text) to anon;
 grant execute on function public.save_attendance_record(text, text, text, text) to anon;
 grant execute on function public.get_attendance_report(text) to anon;
+grant execute on function public.admin_delete_attendance_record(text, uuid) to anon;
 grant execute on function public.get_admin_dashboard(text) to anon;
 grant execute on function public.admin_upsert_teacher(text, uuid, text, boolean) to anon;
 grant execute on function public.admin_set_teacher_active(text, uuid, boolean) to anon;

@@ -91,7 +91,11 @@ function renderRows(rows) {
       <td>${escapeHtml(record["Staff Member"])}</td>
       <td>${escapeHtml(record.Action)}</td>
       <td><img class="signature-image" src="${escapeHtml(record.Signature)}" alt="Signature" /></td>
+      <td class="no-print"><button class="ghost-button delete-button" type="button">Delete</button></td>
     `;
+    row.querySelector(".delete-button").addEventListener("click", () => {
+      deleteAttendanceRecord(record.ID);
+    });
     reportRows.append(row);
   });
 
@@ -106,7 +110,6 @@ async function renderTeachers() {
     const card = document.createElement("article");
     card.className = "staff-row";
 
-    const qrSource = await makeQrSource(link);
     card.innerHTML = `
       <div class="staff-main">
         <strong>${escapeHtml(teacher.name)}</strong>
@@ -118,8 +121,10 @@ async function renderTeachers() {
           <button class="ghost-button" data-action="rotate" type="button">New QR</button>
         </div>
       </div>
-      <img class="qr-image" src="${escapeHtml(qrSource)}" alt="QR code for ${escapeHtml(teacher.name)}" />
+      <div class="qr-box" aria-label="QR code for ${escapeHtml(teacher.name)}"></div>
     `;
+
+    drawQr(card.querySelector(".qr-box"), link);
 
     card.querySelector('[data-action="copy"]').addEventListener("click", async () => {
       await copyText(link);
@@ -138,49 +143,24 @@ async function renderTeachers() {
   }
 }
 
-async function makeQrSource(text) {
-  if (window.QRCode && window.QRCode.toDataURL) {
-    try {
-      return await window.QRCode.toDataURL(text, {
-        width: 148,
-        margin: 1,
-        color: {
-          dark: "#1f2733",
-          light: "#ffffff"
-        }
-      });
-    } catch {
-      return "";
-    }
-  }
-
+function drawQr(target, text) {
+  target.innerHTML = "";
   if (window.QRCode) {
-    const holder = document.createElement("div");
-    holder.style.position = "fixed";
-    holder.style.left = "-9999px";
-    document.body.append(holder);
-
     try {
-      new window.QRCode(holder, {
+      new window.QRCode(target, {
         text,
         width: 148,
         height: 148,
         correctLevel: window.QRCode.CorrectLevel.M
       });
-
-      const canvas = holder.querySelector("canvas");
-      if (canvas) return canvas.toDataURL("image/png");
-
-      const image = holder.querySelector("img");
-      if (image && image.src) return image.src;
+      return;
     } catch {
-      return "";
-    } finally {
-      holder.remove();
+      target.textContent = "QR unavailable";
+      return;
     }
   }
 
-  return "";
+  target.textContent = "QR script missing";
 }
 
 function buildHtmlReport(rows) {
@@ -298,6 +278,28 @@ async function rotateTeacherLink(id) {
   }
 
   await refreshAdmin("New QR link created.");
+}
+
+async function deleteAttendanceRecord(id) {
+  if (!id) {
+    showStatus("This record cannot be deleted yet. Run the latest SQL update first.", true);
+    return;
+  }
+
+  const confirmed = window.confirm("Delete this attendance record?");
+  if (!confirmed) return;
+
+  const { error } = await supabaseClient.rpc("admin_delete_attendance_record", {
+    input_pin: getPin(),
+    record_id: id
+  });
+
+  if (error) {
+    showStatus("Could not delete the record. Run the latest SQL update first.", true);
+    return;
+  }
+
+  await refreshAdmin("Attendance record deleted.");
 }
 
 reportForm.addEventListener("submit", async (event) => {

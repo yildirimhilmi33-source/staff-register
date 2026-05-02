@@ -163,12 +163,30 @@ textarea:focus {
   min-height: 36px;
 }
 
-.qr-image {
+.qr-box {
+  display: grid;
+  place-items: center;
   width: 148px;
   height: 148px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
+  color: var(--danger);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+  overflow: hidden;
+}
+
+.qr-box img,
+.qr-box canvas {
+  display: block;
+  width: 148px;
+  height: 148px;
+}
+
+.delete-button {
+  color: var(--danger);
 }
 
 .report-section {
@@ -247,7 +265,9 @@ tbody tr:last-child td {
     width: 100%;
   }
 
-  .qr-image {
+  .qr-box,
+  .qr-box img,
+  .qr-box canvas {
     width: 132px;
     height: 132px;
   }
