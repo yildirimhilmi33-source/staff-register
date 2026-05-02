@@ -255,14 +255,13 @@ begin
     client_ip,
     user_agent
   )
-  values (
+  select
     teacher_record.id,
     teacher_record.name,
     input_action,
     signature_data_url,
     public.current_client_ip_(),
     left(coalesce(browser_user_agent, ''), 300)
-  )
   returning id into new_record_id;
 
   return jsonb_build_object(
